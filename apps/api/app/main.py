@@ -15,4 +15,3 @@ app.include_router(search.router)
 app.include_router(sources.router)
 app.include_router(submissions.router)
 app.include_router(admin.router)
-

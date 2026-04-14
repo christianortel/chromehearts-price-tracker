@@ -9,11 +9,12 @@ class RedditAdapter(BaseSourceAdapter):
     base_url = "https://www.reddit.com"
 
     def build_discovery_url(self, query: str) -> str:
-        raise NotImplementedError("Reddit adapter is intentionally disabled pending compliant access approval.")
+        raise NotImplementedError(
+            "Reddit adapter is intentionally disabled pending compliant access approval."
+        )
 
     def parse_listing_page(self, html: str) -> list[DiscoveredItem]:
         raise NotImplementedError("Reddit adapter is intentionally stubbed.")
 
     def normalize_item(self, item: DiscoveredItem) -> NormalizedObservation:
         raise NotImplementedError("Reddit adapter is intentionally stubbed.")
-

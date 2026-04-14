@@ -9,7 +9,6 @@ from uuid import uuid4
 
 from app.core.config import get_settings
 
-
 TEXT_EXTENSIONS = {".html", ".htm", ".txt", ".json", ".xml", ".log"}
 SUBMISSION_PROOF_PREFIX = "submission-proofs"
 ALLOWED_SUBMISSION_UPLOAD_CONTENT_TYPES = {
@@ -66,11 +65,15 @@ def write_scrape_html_snapshot(*, source_name: str, run_id: int, html: str) -> s
     return target.relative_to(root).as_posix()
 
 
-def write_submission_upload(*, file_name: str, content_type: str, data: bytes) -> StoredSubmissionUpload:
+def write_submission_upload(
+    *, file_name: str, content_type: str, data: bytes
+) -> StoredSubmissionUpload:
     if content_type not in ALLOWED_SUBMISSION_UPLOAD_CONTENT_TYPES:
         raise ValueError("Unsupported submission proof content type")
 
-    extension = Path(file_name).suffix.lower() or ALLOWED_SUBMISSION_UPLOAD_CONTENT_TYPES[content_type]
+    extension = (
+        Path(file_name).suffix.lower() or ALLOWED_SUBMISSION_UPLOAD_CONTENT_TYPES[content_type]
+    )
     if extension not in ALLOWED_SUBMISSION_UPLOAD_CONTENT_TYPES.values():
         extension = ALLOWED_SUBMISSION_UPLOAD_CONTENT_TYPES[content_type]
 
@@ -98,7 +101,11 @@ def is_local_submission_asset_path(asset_path: str) -> bool:
 
 
 def resolve_artifact_path(asset_path: str) -> Path:
-    root = get_submission_upload_root() if is_local_submission_asset_path(asset_path) else get_artifact_root()
+    root = (
+        get_submission_upload_root()
+        if is_local_submission_asset_path(asset_path)
+        else get_artifact_root()
+    )
     candidate = Path(asset_path)
     if not candidate.is_absolute():
         candidate = root / candidate

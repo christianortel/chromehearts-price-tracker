@@ -60,6 +60,7 @@ The current implementation now includes:
 - public browse totals, facet counts, and pagination controls backed by shared catalog metadata
 - shareable URL-backed public browse state for filters and pagination
 - explicit public browse share controls and curated quick-view presets layered on top of the URL-backed browse state
+- local API verification against the GitHub Actions quality gate: Ruff, mypy, and pytest all pass from the checked-in API workspace config
 
 See `PROJECT_STATUS.md` for active progress, `DECISIONS.md` for architecture and product decisions, and `TODO_BACKLOG.md` for deferred work.
 
@@ -72,7 +73,8 @@ See `PROJECT_STATUS.md` for active progress, `DECISIONS.md` for architecture and
 5. Open the web app at `http://localhost:3000`.
 6. Open the API docs at `http://localhost:8000/docs`.
 7. Validate the web workspace with `npm install`, `npm run lint:web`, `npm run typecheck:web`, and `npm run build:web`.
+8. Validate the API workspace with `python -m venv .venv`, `.venv\Scripts\pip.exe install -r apps/api/requirements.txt`, then from `apps/api` run `..\..\.venv\Scripts\ruff.exe check .`, `..\..\.venv\Scripts\mypy.exe app`, and `..\..\.venv\Scripts\pytest.exe`.
 
 When running in Docker, the web server uses `API_BASE_URL` for server-side requests and the browser uses `NEXT_PUBLIC_API_BASE_URL`.
 
-The current shell environment used for this build still does not include a working Python runtime or Docker, so full-stack execution has not been completed in-session. The web workspace has been locally validated in this environment through the root npm scripts for lint, compile-mode typecheck, and production build.
+This workspace has now been locally validated in-session for both web and API quality gates. Web lint, compile-mode typecheck, and production build pass, and the API Ruff, mypy, and pytest suite pass against a local Python 3.12 virtual environment. Docker-based full-stack validation and live-source execution against real pages still remain outstanding.

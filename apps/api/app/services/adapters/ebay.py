@@ -43,9 +43,15 @@ class EbayAdapter(BaseSourceAdapter):
                     title=title,
                     metadata={
                         "price_text": price_node.get_text(" ", strip=True),
-                        "condition": condition_node.get_text(" ", strip=True) if condition_node else None,
-                        "shipping_text": shipping_node.get_text(" ", strip=True) if shipping_node else None,
-                        "location_text": location_node.get_text(" ", strip=True) if location_node else None,
+                        "condition": condition_node.get_text(" ", strip=True)
+                        if condition_node
+                        else None,
+                        "shipping_text": shipping_node.get_text(" ", strip=True)
+                        if shipping_node
+                        else None,
+                        "location_text": location_node.get_text(" ", strip=True)
+                        if location_node
+                        else None,
                     },
                 )
             )
@@ -86,4 +92,3 @@ class EbayAdapter(BaseSourceAdapter):
                 observed_at.date().isoformat(),
             ),
         )
-

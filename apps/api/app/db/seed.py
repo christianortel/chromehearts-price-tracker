@@ -2,20 +2,45 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
+from typing import TypedDict
 
 from sqlalchemy.orm import Session
 
 from app.db.session import SessionLocal
 from app.models import PriceObservation, Product, ProductAlias, ProductVariant, RetailReport, Source
 from app.services.metrics.engine import recompute_product_metrics
-from app.services.normalization import normalize_text
+from app.services.normalization import build_duplicate_group_key, normalize_text
+
+
+class ProductTemplateConfig(TypedDict):
+    subcategory: str
+    material: str
+    names: list[str]
+
+
+class SourceFixturePayload(TypedDict):
+    name: str
+    source_type: str
+    base_url: str | None
+    crawl_method: str
+    policy_status: str
+    notes: str
+
+
+class SeedProductPayload(TypedDict):
+    canonical_name: str
+    slug: str
+    category: str
+    subcategory: str
+    material: str
+    notes: str
 
 
 def slugify(value: str) -> str:
     return normalize_text(value).replace(" ", "-")
 
 
-SOURCE_FIXTURES = [
+SOURCE_FIXTURES: list[SourceFixturePayload] = [
     {
         "name": "legacy_csv",
         "source_type": "import",
@@ -75,7 +100,7 @@ SOURCE_FIXTURES = [
 ]
 
 
-PRODUCT_TEMPLATES = {
+PRODUCT_TEMPLATES: dict[str, ProductTemplateConfig] = {
     "trucker_hat": {
         "subcategory": "hat",
         "material": "cotton/poly mesh",
@@ -223,8 +248,8 @@ PRODUCT_TEMPLATES = {
 }
 
 
-def build_seed_products() -> list[dict[str, str | None]]:
-    products: list[dict[str, str | None]] = []
+def build_seed_products() -> list[SeedProductPayload]:
+    products: list[SeedProductPayload] = []
     for category, config in PRODUCT_TEMPLATES.items():
         for name in config["names"]:
             products.append(
@@ -287,7 +312,11 @@ def seed_products(db: Session) -> list[Product]:
 def seed_observations(db: Session, products: list[Product], sources: dict[str, Source]) -> None:
     if db.query(PriceObservation).count() > 0:
         return
-    sample_products = products[:12]
+    sample_products: list[Product] = []
+    for category in PRODUCT_TEMPLATES:
+        category_products = [product for product in products if product.category == category][:2]
+        sample_products.extend(category_products)
+
     for index, product in enumerate(sample_products):
         retail_price = Decimal(425 + (index * 35))
         ask_price = (retail_price * Decimal("1.65")).quantize(Decimal("0.01"))
@@ -351,13 +380,50 @@ def seed_observations(db: Session, products: list[Product], sources: dict[str, S
             )
         )
 
+    reference_product = next(
+        (product for product in products if product.category == "ring"), products[0]
+    )
+    db.add(
+        PriceObservation(
+            product_id=None,
+            raw_title="CH Forever Ring collector report",
+            normalized_title=normalize_text("CH Forever Ring collector report"),
+            source_id=sources["community_submissions"].id,
+            source_item_id="seed-unmatched-forever-ring",
+            source_url="seed://unmatched/forever-ring",
+            source_type_snapshot="community_retail",
+            market_side="retail",
+            seller_or_store="Chrome Hearts Las Vegas",
+            location_text="Las Vegas, US",
+            currency="USD",
+            price_amount=Decimal("575.00"),
+            observed_at=datetime.now(UTC) - timedelta(days=3),
+            status="pending_review",
+            proof_type="claim",
+            extraction_confidence=Decimal("0.920"),
+            match_confidence=Decimal("0.000"),
+            price_confidence=Decimal("0.680"),
+            duplicate_group_key=build_duplicate_group_key(
+                "community_submissions",
+                normalize_text(reference_product.canonical_name),
+                "575.00",
+                str((datetime.now(UTC) - timedelta(days=3)).date()),
+            ),
+            raw_payload_json={
+                "seed": True,
+                "market_side": "retail",
+                "note": "Seeded unmatched moderation example.",
+            },
+        )
+    )
+
 
 def seed_all(db: Session) -> None:
     sources = seed_sources(db)
     products = seed_products(db)
     seed_observations(db, products, sources)
     db.flush()
-    for product in products[:12]:
+    for product in products:
         recompute_product_metrics(db, product.id)
 
 

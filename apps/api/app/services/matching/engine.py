@@ -1,7 +1,7 @@
 from collections.abc import Iterable
 from dataclasses import dataclass
-from difflib import SequenceMatcher
 from decimal import Decimal
+from difflib import SequenceMatcher
 
 from sqlalchemy.orm import Session
 
@@ -56,7 +56,9 @@ def build_match_catalog(db: Session) -> list[MatchCatalogEntry]:
     ]
 
 
-def rank_products_against_catalog(raw_title: str, catalog: list[MatchCatalogEntry]) -> list[MatchCandidate]:
+def rank_products_against_catalog(
+    raw_title: str, catalog: list[MatchCatalogEntry]
+) -> list[MatchCandidate]:
     normalized = normalize_text(raw_title)
     category_hint = infer_category(normalized)
     candidates: list[MatchCandidate] = []
@@ -76,7 +78,7 @@ def rank_products_against_catalog(raw_title: str, catalog: list[MatchCatalogEntr
             reasons.append("material keyword")
         candidates.append(
             MatchCandidate(
-                product_id=product.id,
+                product_id=product.product_id,
                 product_name=product.canonical_name,
                 score=min(base_score, Decimal("0.999")),
                 reason=", ".join(reasons),

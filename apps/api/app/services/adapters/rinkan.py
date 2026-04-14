@@ -42,7 +42,9 @@ class RinkanAdapter(BaseSourceAdapter):
                     title=title_node.get_text(" ", strip=True),
                     metadata={
                         "price_text": price_node.get_text(" ", strip=True),
-                        "condition": condition_node.get_text(" ", strip=True) if condition_node else None,
+                        "condition": condition_node.get_text(" ", strip=True)
+                        if condition_node
+                        else None,
                         "location_text": "Japan",
                     },
                 )
@@ -52,12 +54,7 @@ class RinkanAdapter(BaseSourceAdapter):
     def normalize_item(self, item: DiscoveredItem) -> NormalizedObservation:
         price_text = item.metadata["price_text"]
         price_text = price_text.replace("\u00a5", "").replace("\u00c2\u00a5", "")
-        clean = (
-            price_text.replace("¥", "")
-            .replace(",", "")
-            .replace("JPY", "")
-            .strip()
-        )
+        clean = price_text.replace("¥", "").replace(",", "").replace("JPY", "").strip()
         yen_amount = Decimal(clean.split(" ")[0])
         usd_amount = (yen_amount / Decimal("150")).quantize(Decimal("0.01"))
         normalized_title = self._normalize_title(item.title)
@@ -77,7 +74,11 @@ class RinkanAdapter(BaseSourceAdapter):
             price_amount=usd_amount,
             observed_at=observed_at,
             proof_type="listing",
-            raw_payload={**item.metadata, "original_currency": "JPY", "original_price": str(yen_amount)},
+            raw_payload={
+                **item.metadata,
+                "original_currency": "JPY",
+                "original_price": str(yen_amount),
+            },
             extraction_confidence=Decimal("0.880"),
             price_confidence=Decimal("0.760"),
             duplicate_group_key=self._build_duplicate_key(

@@ -5,9 +5,8 @@ Revises: None
 Create Date: 2026-04-13 19:30:00
 """
 
-from alembic import op
 import sqlalchemy as sa
-
+from alembic import op
 
 revision = "20260413_0001"
 down_revision = None
@@ -56,8 +55,12 @@ def upgrade() -> None:
         sa.Column("source_name", sa.String(length=128), nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
     )
-    op.create_index("ix_product_aliases_product_id", "product_aliases", ["product_id"], unique=False)
-    op.create_index("ix_product_aliases_alias_text", "product_aliases", ["alias_text"], unique=False)
+    op.create_index(
+        "ix_product_aliases_product_id", "product_aliases", ["product_id"], unique=False
+    )
+    op.create_index(
+        "ix_product_aliases_alias_text", "product_aliases", ["alias_text"], unique=False
+    )
 
     op.create_table(
         "product_variants",
@@ -72,8 +75,12 @@ def upgrade() -> None:
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
     )
-    op.create_index("ix_product_variants_product_id", "product_variants", ["product_id"], unique=False)
-    op.create_index("ix_product_variants_variant_key", "product_variants", ["variant_key"], unique=True)
+    op.create_index(
+        "ix_product_variants_product_id", "product_variants", ["product_id"], unique=False
+    )
+    op.create_index(
+        "ix_product_variants_variant_key", "product_variants", ["variant_key"], unique=True
+    )
 
     op.create_table(
         "user_submissions",
@@ -119,9 +126,24 @@ def upgrade() -> None:
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
     )
-    op.create_index("ix_legacy_import_rows_external_row_id", "legacy_import_rows", ["external_row_id"], unique=False)
-    op.create_index("ix_legacy_import_rows_normalized_title", "legacy_import_rows", ["normalized_title"], unique=False)
-    op.create_index("ix_legacy_import_rows_duplicate_group_key", "legacy_import_rows", ["duplicate_group_key"], unique=False)
+    op.create_index(
+        "ix_legacy_import_rows_external_row_id",
+        "legacy_import_rows",
+        ["external_row_id"],
+        unique=False,
+    )
+    op.create_index(
+        "ix_legacy_import_rows_normalized_title",
+        "legacy_import_rows",
+        ["normalized_title"],
+        unique=False,
+    )
+    op.create_index(
+        "ix_legacy_import_rows_duplicate_group_key",
+        "legacy_import_rows",
+        ["duplicate_group_key"],
+        unique=False,
+    )
 
     op.create_table(
         "watchlists",
@@ -167,19 +189,49 @@ def upgrade() -> None:
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
     )
-    op.create_index("ix_price_observations_product_id", "price_observations", ["product_id"], unique=False)
-    op.create_index("ix_price_observations_variant_id", "price_observations", ["variant_id"], unique=False)
-    op.create_index("ix_price_observations_source_id", "price_observations", ["source_id"], unique=False)
-    op.create_index("ix_price_observations_source_item_id", "price_observations", ["source_item_id"], unique=False)
-    op.create_index("ix_price_observations_normalized_title", "price_observations", ["normalized_title"], unique=False)
-    op.create_index("ix_price_observations_market_side", "price_observations", ["market_side"], unique=False)
-    op.create_index("ix_price_observations_observed_at", "price_observations", ["observed_at"], unique=False)
-    op.create_index("ix_price_observations_duplicate_group_key", "price_observations", ["duplicate_group_key"], unique=False)
+    op.create_index(
+        "ix_price_observations_product_id", "price_observations", ["product_id"], unique=False
+    )
+    op.create_index(
+        "ix_price_observations_variant_id", "price_observations", ["variant_id"], unique=False
+    )
+    op.create_index(
+        "ix_price_observations_source_id", "price_observations", ["source_id"], unique=False
+    )
+    op.create_index(
+        "ix_price_observations_source_item_id",
+        "price_observations",
+        ["source_item_id"],
+        unique=False,
+    )
+    op.create_index(
+        "ix_price_observations_normalized_title",
+        "price_observations",
+        ["normalized_title"],
+        unique=False,
+    )
+    op.create_index(
+        "ix_price_observations_market_side", "price_observations", ["market_side"], unique=False
+    )
+    op.create_index(
+        "ix_price_observations_observed_at", "price_observations", ["observed_at"], unique=False
+    )
+    op.create_index(
+        "ix_price_observations_duplicate_group_key",
+        "price_observations",
+        ["duplicate_group_key"],
+        unique=False,
+    )
 
     op.create_table(
         "retail_reports",
         sa.Column("id", sa.Integer(), primary_key=True),
-        sa.Column("source_observation_id", sa.Integer(), sa.ForeignKey("price_observations.id"), nullable=False),
+        sa.Column(
+            "source_observation_id",
+            sa.Integer(),
+            sa.ForeignKey("price_observations.id"),
+            nullable=False,
+        ),
         sa.Column("product_id", sa.Integer(), sa.ForeignKey("products.id"), nullable=True),
         sa.Column("store_name", sa.String(length=255), nullable=True),
         sa.Column("city", sa.String(length=128), nullable=True),
@@ -196,14 +248,26 @@ def upgrade() -> None:
     op.create_table(
         "item_match_reviews",
         sa.Column("id", sa.Integer(), primary_key=True),
-        sa.Column("observation_id", sa.Integer(), sa.ForeignKey("price_observations.id"), nullable=False),
+        sa.Column(
+            "observation_id", sa.Integer(), sa.ForeignKey("price_observations.id"), nullable=False
+        ),
         sa.Column("proposed_product_id", sa.Integer(), sa.ForeignKey("products.id"), nullable=True),
         sa.Column("reviewer_decision", sa.String(length=32), nullable=False),
         sa.Column("reviewer_notes", sa.Text(), nullable=True),
         sa.Column("reviewed_at", sa.DateTime(timezone=True), nullable=True),
     )
-    op.create_index("ix_item_match_reviews_observation_id", "item_match_reviews", ["observation_id"], unique=False)
-    op.create_index("ix_item_match_reviews_proposed_product_id", "item_match_reviews", ["proposed_product_id"], unique=False)
+    op.create_index(
+        "ix_item_match_reviews_observation_id",
+        "item_match_reviews",
+        ["observation_id"],
+        unique=False,
+    )
+    op.create_index(
+        "ix_item_match_reviews_proposed_product_id",
+        "item_match_reviews",
+        ["proposed_product_id"],
+        unique=False,
+    )
 
     op.create_table(
         "metric_snapshots",
@@ -226,8 +290,12 @@ def upgrade() -> None:
         sa.Column("confidence_score", sa.Numeric(4, 3), nullable=True),
         sa.Column("generated_at", sa.DateTime(timezone=True), nullable=False),
     )
-    op.create_index("ix_metric_snapshots_product_id", "metric_snapshots", ["product_id"], unique=False)
-    op.create_index("ix_metric_snapshots_snapshot_date", "metric_snapshots", ["snapshot_date"], unique=False)
+    op.create_index(
+        "ix_metric_snapshots_product_id", "metric_snapshots", ["product_id"], unique=False
+    )
+    op.create_index(
+        "ix_metric_snapshots_snapshot_date", "metric_snapshots", ["snapshot_date"], unique=False
+    )
 
     op.create_table(
         "scrape_runs",
@@ -256,7 +324,9 @@ def upgrade() -> None:
         sa.Column("screenshot_path", sa.String(length=1024), nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
     )
-    op.create_index("ix_scrape_errors_scrape_run_id", "scrape_errors", ["scrape_run_id"], unique=False)
+    op.create_index(
+        "ix_scrape_errors_scrape_run_id", "scrape_errors", ["scrape_run_id"], unique=False
+    )
     op.create_index("ix_scrape_errors_source_id", "scrape_errors", ["source_id"], unique=False)
 
     op.create_table(
@@ -326,4 +396,3 @@ def downgrade() -> None:
     op.drop_index("ix_products_slug", table_name="products")
     op.drop_index("ix_products_canonical_name", table_name="products")
     op.drop_table("products")
-

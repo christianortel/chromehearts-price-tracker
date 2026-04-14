@@ -9,4 +9,3 @@ def test_initial_migration_exists() -> None:
         / "20260413_0001_initial_schema.py"
     )
     assert migration.exists()
-

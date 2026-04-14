@@ -3,11 +3,10 @@ from __future__ import annotations
 from logging.config import fileConfig
 
 from alembic import context
-from sqlalchemy import engine_from_config, pool
-
 from app.core.config import get_settings
 from app.db.base import Base
 from app.models import entities  # noqa: F401
+from sqlalchemy import engine_from_config, pool
 
 config = context.config
 settings = get_settings()
@@ -49,4 +48,3 @@ if context.is_offline_mode():
     run_migrations_offline()
 else:
     run_migrations_online()
-

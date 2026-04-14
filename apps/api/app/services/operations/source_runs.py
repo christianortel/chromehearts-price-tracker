@@ -91,7 +91,9 @@ def execute_source_run(
         html_snapshot_path = None
         if html:
             try:
-                html_snapshot_path = write_scrape_html_snapshot(source_name=source.name, run_id=run.id, html=html)
+                html_snapshot_path = write_scrape_html_snapshot(
+                    source_name=source.name, run_id=run.id, html=html
+                )
             except OSError:
                 html_snapshot_path = None
         db.add(

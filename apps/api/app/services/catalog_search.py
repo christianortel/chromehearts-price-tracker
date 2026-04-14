@@ -1,16 +1,23 @@
 from __future__ import annotations
 
 from decimal import Decimal
-from typing import Literal
+from typing import Literal, cast
 
 from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session, selectinload
 
-from app.models import PriceObservation, Product, ProductAlias
+from app.models import MetricSnapshot, PriceObservation, Product, ProductAlias
 from app.schemas.common import MetricSnapshotOut
-from app.schemas.products import ProductBrowseFacets, ProductBrowseResponse, ProductFacetCount, ProductListItem
+from app.schemas.products import (
+    ProductBrowseFacets,
+    ProductBrowseResponse,
+    ProductFacetCount,
+    ProductListItem,
+)
 
-ProductBrowseSort = Literal["updated_desc", "premium_desc", "freshness_desc", "confidence_desc", "name_asc"]
+ProductBrowseSort = Literal[
+    "updated_desc", "premium_desc", "freshness_desc", "confidence_desc", "name_asc"
+]
 
 CATEGORY_LABELS = {
     "trucker_hat": "trucker hats",
@@ -36,8 +43,11 @@ MARKET_SIDE_LABELS = {
 }
 
 
-def latest_metric_for_product(product: Product):
-    return max(product.metrics, key=lambda metric: metric.generated_at, default=None)
+def latest_metric_for_product(product: Product) -> MetricSnapshot | None:
+    metrics = cast(list[MetricSnapshot], product.metrics)
+    if not metrics:
+        return None
+    return max(metrics, key=lambda metric: metric.generated_at)
 
 
 def build_product_list_item(product: Product) -> ProductListItem:
@@ -52,7 +62,9 @@ def _metric_decimal(metric_value: Decimal | None) -> Decimal:
     return metric_value if metric_value is not None else Decimal("-1")
 
 
-def _filter_products_by_min_confidence(products: list[Product], min_confidence: Decimal | None) -> list[Product]:
+def _filter_products_by_min_confidence(
+    products: list[Product], min_confidence: Decimal | None
+) -> list[Product]:
     if min_confidence is None:
         return products
     return [
@@ -72,7 +84,9 @@ def _load_catalog_products(
     source_types: list[str] | None = None,
     market_sides: list[str] | None = None,
 ) -> list[Product]:
-    rows = db.query(Product).options(selectinload(Product.metrics), selectinload(Product.observations))
+    rows = db.query(Product).options(
+        selectinload(Product.metrics), selectinload(Product.observations)
+    )
 
     if query:
         rows = rows.outerjoin(ProductAlias, ProductAlias.product_id == Product.id).filter(
@@ -109,14 +123,18 @@ def _load_catalog_products(
     return rows.distinct().all()
 
 
-def _sort_product_items(items: list[ProductListItem], sort: ProductBrowseSort) -> list[ProductListItem]:
+def _sort_product_items(
+    items: list[ProductListItem], sort: ProductBrowseSort
+) -> list[ProductListItem]:
     if sort == "name_asc":
         return sorted(items, key=lambda item: (item.canonical_name.lower(), item.id))
     if sort == "premium_desc":
         return sorted(
             items,
             key=lambda item: (
-                _metric_decimal(item.latest_metric.premium_vs_retail_pct if item.latest_metric else None),
+                _metric_decimal(
+                    item.latest_metric.premium_vs_retail_pct if item.latest_metric else None
+                ),
                 item.updated_at,
                 item.canonical_name.lower(),
             ),
@@ -136,19 +154,25 @@ def _sort_product_items(items: list[ProductListItem], sort: ProductBrowseSort) -
         return sorted(
             items,
             key=lambda item: (
-                _metric_decimal(item.latest_metric.confidence_score if item.latest_metric else None),
+                _metric_decimal(
+                    item.latest_metric.confidence_score if item.latest_metric else None
+                ),
                 item.updated_at,
                 item.canonical_name.lower(),
             ),
             reverse=True,
         )
-    return sorted(items, key=lambda item: (item.updated_at, item.canonical_name.lower()), reverse=True)
+    return sorted(
+        items, key=lambda item: (item.updated_at, item.canonical_name.lower()), reverse=True
+    )
 
 
 def _build_facet_counts(counts: dict[str, int], labels: dict[str, str]) -> list[ProductFacetCount]:
     ordered_keys = list(labels.keys())
     facet_items = [
-        ProductFacetCount(key=key, label=labels.get(key, key.replace("_", " ")), count=counts.get(key, 0))
+        ProductFacetCount(
+            key=key, label=labels.get(key, key.replace("_", " ")), count=counts.get(key, 0)
+        )
         for key in ordered_keys
         if counts.get(key, 0) > 0 or key in counts
     ]
@@ -212,7 +236,9 @@ def _sorted_filtered_products(
         market_sides=market_sides,
     )
     filtered_products = _filter_products_by_min_confidence(products, min_confidence)
-    sorted_items = _sort_product_items([build_product_list_item(product) for product in filtered_products], sort)
+    sorted_items = _sort_product_items(
+        [build_product_list_item(product) for product in filtered_products], sort
+    )
     product_by_id = {product.id: product for product in filtered_products}
     return [product_by_id[item.id] for item in sorted_items]
 
@@ -295,8 +321,12 @@ def browse_catalog_products(
 
     facets = ProductBrowseFacets(
         categories=_build_facet_counts(_count_category_facets(category_products), CATEGORY_LABELS),
-        source_types=_build_facet_counts(_count_source_type_facets(source_type_products), SOURCE_TYPE_LABELS),
-        market_sides=_build_facet_counts(_count_market_side_facets(market_side_products), MARKET_SIDE_LABELS),
+        source_types=_build_facet_counts(
+            _count_source_type_facets(source_type_products), SOURCE_TYPE_LABELS
+        ),
+        market_sides=_build_facet_counts(
+            _count_market_side_facets(market_side_products), MARKET_SIDE_LABELS
+        ),
     )
     return ProductBrowseResponse(
         total=total,

@@ -5,7 +5,9 @@ from app.services.adapters.rinkan import RinkanAdapter
 
 
 def test_ebay_adapter_parses_and_normalizes_fixture() -> None:
-    html = (Path(__file__).resolve().parents[1] / "fixtures" / "ebay_search.html").read_text(encoding="utf-8")
+    html = (Path(__file__).resolve().parents[1] / "fixtures" / "ebay_search.html").read_text(
+        encoding="utf-8"
+    )
     adapter = EbayAdapter()
     items = adapter.parse_listing_page(html)
     assert len(items) == 1
@@ -17,7 +19,9 @@ def test_ebay_adapter_parses_and_normalizes_fixture() -> None:
 
 
 def test_rinkan_adapter_parses_and_normalizes_fixture() -> None:
-    html = (Path(__file__).resolve().parents[1] / "fixtures" / "rinkan_search.html").read_text(encoding="utf-8")
+    html = (Path(__file__).resolve().parents[1] / "fixtures" / "rinkan_search.html").read_text(
+        encoding="utf-8"
+    )
     adapter = RinkanAdapter()
     items = adapter.parse_listing_page(html)
     assert len(items) == 1
@@ -26,4 +30,3 @@ def test_rinkan_adapter_parses_and_normalizes_fixture() -> None:
     assert observation.market_side == "ask"
     assert observation.raw_payload["original_currency"] == "JPY"
     assert observation.price_amount > 500
-

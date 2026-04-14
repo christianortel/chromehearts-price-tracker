@@ -1,10 +1,9 @@
-from sqlalchemy import func
-from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
-
 from app.db.session import get_db
 from app.models import ScrapeRun, Source
 from app.schemas.sources import SourceOut
+from fastapi import APIRouter, Depends
+from sqlalchemy import func
+from sqlalchemy.orm import Session
 
 router = APIRouter(tags=["sources"])
 
@@ -29,4 +28,3 @@ def source_health_public(db: Session = Depends(get_db)) -> list[dict]:
         .all()
     )
     return [dict(row._mapping) for row in latest_runs]
-

@@ -5,6 +5,7 @@
 - add object storage provider abstraction with signed upload URLs for submission proofs and other stored assets
 - add user-defined saved browse views beyond the current curated quick-view presets and copy-link flow
 - upgrade the web app from `next@15.1.7` to a patched release after validating any breaking config changes
+- validate `docker compose up --build`, `make migrate`, and `make seed` in a clean environment now that local API and web quality gates pass
 - add richer seller reputation weighting in price confidence scoring
 - add semantic embedding fallback for ambiguous matching when an embedding provider is configured
 - expand curated seller coverage to Justin Reed and Grailed after selector validation

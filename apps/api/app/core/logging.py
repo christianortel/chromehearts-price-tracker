@@ -24,4 +24,3 @@ def configure_logging(level: str) -> None:
     handler.setFormatter(JsonFormatter())
     root.setLevel(level.upper())
     root.addHandler(handler)
-

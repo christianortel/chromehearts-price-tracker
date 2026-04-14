@@ -2,7 +2,6 @@ from pathlib import Path
 
 from app.core.config import get_settings
 
-
 FIXTURES_DIR = Path(__file__).resolve().parents[1] / "fixtures"
 
 
@@ -54,7 +53,9 @@ def test_products_support_browse_filters_and_sorting(client) -> None:
     assert confident_payload
     assert confident_payload == sorted(confident_payload, key=lambda item: item["canonical_name"])
     assert all(item["latest_metric"] is not None for item in confident_payload)
-    assert all(float(item["latest_metric"]["confidence_score"]) >= 0.7 for item in confident_payload)
+    assert all(
+        float(item["latest_metric"]["confidence_score"]) >= 0.7 for item in confident_payload
+    )
 
 
 def test_product_browse_metadata_includes_totals_and_facets(client) -> None:
@@ -73,12 +74,17 @@ def test_product_browse_metadata_includes_totals_and_facets(client) -> None:
     assert payload["limit"] == 5
     assert payload["offset"] == 0
     assert payload["has_next_page"] is True
-    assert any(facet["key"] == "ring" and facet["count"] >= 1 for facet in payload["facets"]["categories"])
+    assert any(
+        facet["key"] == "ring" and facet["count"] >= 1 for facet in payload["facets"]["categories"]
+    )
     assert any(
         facet["key"] == "community_retail" and facet["count"] >= 1
         for facet in payload["facets"]["source_types"]
     )
-    assert any(facet["key"] == "retail" and facet["count"] >= 1 for facet in payload["facets"]["market_sides"])
+    assert any(
+        facet["key"] == "retail" and facet["count"] >= 1
+        for facet in payload["facets"]["market_sides"]
+    )
 
 
 def test_product_browse_category_facets_ignore_current_category_filter(client) -> None:
@@ -188,7 +194,9 @@ def test_admin_source_health_and_scrape_run_flow(client) -> None:
 
     runs = client.get("/admin/scrape-runs", headers={"x-admin-token": "change-me"})
     assert runs.status_code == 200
-    assert any(item["id"] == payload["id"] and item["source_name"] == "ebay" for item in runs.json())
+    assert any(
+        item["id"] == payload["id"] and item["source_name"] == "ebay" for item in runs.json()
+    )
 
 
 def test_admin_scrape_run_detail_includes_persisted_errors(client) -> None:
@@ -214,14 +222,18 @@ def test_admin_scrape_run_detail_includes_persisted_errors(client) -> None:
     assert run_payload["status"] == "stubbed"
     assert run_payload["error_count"] == 1
 
-    detail = client.get(f"/admin/scrape-runs/{run_payload['id']}", headers={"x-admin-token": "change-me"})
+    detail = client.get(
+        f"/admin/scrape-runs/{run_payload['id']}", headers={"x-admin-token": "change-me"}
+    )
     assert detail.status_code == 200
     detail_payload = detail.json()
     assert detail_payload["id"] == run_payload["id"]
     assert detail_payload["source_name"] == "reddit"
     assert len(detail_payload["errors"]) == 1
     assert detail_payload["errors"][0]["error_type"] == "not_implemented"
-    assert "disabled pending compliant access approval" in detail_payload["errors"][0]["error_message"]
+    assert (
+        "disabled pending compliant access approval" in detail_payload["errors"][0]["error_message"]
+    )
 
 
 def test_admin_asset_preview_reads_stored_html_snapshot(client, monkeypatch, tmp_path) -> None:
@@ -256,7 +268,9 @@ def test_admin_asset_preview_reads_stored_html_snapshot(client, monkeypatch, tmp
         assert run_payload["status"] == "error"
         assert run_payload["error_count"] == 1
 
-        detail = client.get(f"/admin/scrape-runs/{run_payload['id']}", headers={"x-admin-token": "change-me"})
+        detail = client.get(
+            f"/admin/scrape-runs/{run_payload['id']}", headers={"x-admin-token": "change-me"}
+        )
         assert detail.status_code == 200
         detail_payload = detail.json()
         snapshot_path = detail_payload["errors"][0]["html_snapshot_path"]
@@ -276,7 +290,9 @@ def test_admin_asset_preview_reads_stored_html_snapshot(client, monkeypatch, tmp
         get_settings.cache_clear()
 
 
-def test_admin_asset_preview_rejects_paths_outside_artifact_root(client, monkeypatch, tmp_path) -> None:
+def test_admin_asset_preview_rejects_paths_outside_artifact_root(
+    client, monkeypatch, tmp_path
+) -> None:
     monkeypatch.setenv("ARTIFACT_STORAGE_ROOT", str(tmp_path))
     get_settings.cache_clear()
     try:
@@ -322,10 +338,15 @@ def test_admin_duplicate_groups_and_review_flow(client) -> None:
     group = next(
         item
         for item in groups
-        if all(observation["source_url"].startswith("submission://") for observation in item["observations"])
+        if all(
+            observation["source_url"].startswith("submission://")
+            for observation in item["observations"]
+        )
     )
     assert group["duplicate_count"] == 2
-    assert group["suggested_keep_observation_id"] in {observation["id"] for observation in group["observations"]}
+    assert group["suggested_keep_observation_id"] in {
+        observation["id"] for observation in group["observations"]
+    }
     assert group["suggested_keep_reason"]
 
     reject = client.post(
@@ -338,7 +359,9 @@ def test_admin_duplicate_groups_and_review_flow(client) -> None:
     duplicates_after = client.get("/admin/duplicates", headers={"x-admin-token": "change-me"})
     assert duplicates_after.status_code == 200
     remaining_groups = duplicates_after.json()
-    assert not any(item["duplicate_group_key"] == group["duplicate_group_key"] for item in remaining_groups)
+    assert not any(
+        item["duplicate_group_key"] == group["duplicate_group_key"] for item in remaining_groups
+    )
 
 
 def test_admin_duplicate_group_resolution_keeps_selected_observation(client) -> None:
@@ -371,7 +394,10 @@ def test_admin_duplicate_group_resolution_keeps_selected_observation(client) -> 
     group = next(
         item
         for item in duplicates.json()
-        if all(observation["source_url"].startswith("submission://") for observation in item["observations"])
+        if all(
+            observation["source_url"].startswith("submission://")
+            for observation in item["observations"]
+        )
     )
     keep_observation_id = group["observations"][0]["id"]
 
@@ -390,7 +416,10 @@ def test_admin_duplicate_group_resolution_keeps_selected_observation(client) -> 
 
     duplicates_after = client.get("/admin/duplicates", headers={"x-admin-token": "change-me"})
     assert duplicates_after.status_code == 200
-    assert not any(item["duplicate_group_key"] == group["duplicate_group_key"] for item in duplicates_after.json())
+    assert not any(
+        item["duplicate_group_key"] == group["duplicate_group_key"]
+        for item in duplicates_after.json()
+    )
 
     product_observations = client.get("/products/2/observations")
     assert product_observations.status_code == 200
@@ -399,8 +428,16 @@ def test_admin_duplicate_group_resolution_keeps_selected_observation(client) -> 
         for observation in product_observations.json()
         if observation["id"] in {item["id"] for item in group["observations"]}
     ]
-    kept = next(observation for observation in group_observations if observation["id"] == keep_observation_id)
-    rejected = next(observation for observation in group_observations if observation["id"] != keep_observation_id)
+    kept = next(
+        observation
+        for observation in group_observations
+        if observation["id"] == keep_observation_id
+    )
+    rejected = next(
+        observation
+        for observation in group_observations
+        if observation["id"] != keep_observation_id
+    )
     assert kept["status"] == "active"
     assert rejected["status"] == "rejected"
 
@@ -442,7 +479,9 @@ def test_admin_observation_detail_includes_match_history(client) -> None:
     )
     assert match.status_code == 200
 
-    detail = client.get(f"/admin/observations/{observation['id']}", headers={"x-admin-token": "change-me"})
+    detail = client.get(
+        f"/admin/observations/{observation['id']}", headers={"x-admin-token": "change-me"}
+    )
     assert detail.status_code == 200
     payload = detail.json()
     assert payload["id"] == observation["id"]
@@ -539,7 +578,9 @@ def test_submission_asset_upload_and_admin_preview(client, monkeypatch, tmp_path
 
         submissions = client.get("/admin/submissions", headers={"x-admin-token": "change-me"})
         assert submissions.status_code == 200
-        assert any(item["receipt_asset_url"] == upload_payload["asset_path"] for item in submissions.json())
+        assert any(
+            item["receipt_asset_url"] == upload_payload["asset_path"] for item in submissions.json()
+        )
 
         preview = client.get(
             "/admin/assets/preview",

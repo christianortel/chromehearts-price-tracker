@@ -53,4 +53,3 @@ def persist_observations(
         scrape_run.parsed_count += len(observations)
         scrape_run.inserted_count += len(persisted)
     return persisted
-

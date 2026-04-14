@@ -1,4 +1,9 @@
-from app.services.normalization import build_duplicate_group_key, extract_size_token, infer_category, normalize_text
+from app.services.normalization import (
+    build_duplicate_group_key,
+    extract_size_token,
+    infer_category,
+    normalize_text,
+)
 
 
 def test_normalize_text_expands_abbreviations_and_punctuation() -> None:
@@ -18,4 +23,3 @@ def test_duplicate_group_key_is_deterministic() -> None:
     first = build_duplicate_group_key("ebay", "chrome hearts forever ring", "495.00", "2026-04-01")
     second = build_duplicate_group_key("ebay", "chrome hearts forever ring", "495.00", "2026-04-01")
     assert first == second
-

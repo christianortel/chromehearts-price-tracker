@@ -7,6 +7,10 @@ src = ["app", "tests"]
 select = ["E", "F", "I", "B", "UP", "N", "ASYNC", "S", "SIM"]
 ignore = ["B008", "S104", "S105", "S106"]
 
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["S101"]
+"alembic/**/*.py" = ["E501"]
+
 [tool.ruff.format]
 quote-style = "double"
 
@@ -20,4 +24,3 @@ ignore_missing_imports = true
 [tool.pytest.ini_options]
 pythonpath = ["."]
 testpaths = ["tests"]
-

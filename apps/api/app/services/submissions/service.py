@@ -74,6 +74,7 @@ def review_submission(
                 moderator_status="approved",
             )
         )
+        db.flush()
     db.add(
         AdminAuditLog(
             admin_identifier=admin_identifier,
@@ -85,4 +86,3 @@ def review_submission(
     )
     db.flush()
     return submission
-

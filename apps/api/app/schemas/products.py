@@ -1,9 +1,8 @@
 from datetime import datetime
 from decimal import Decimal
 
-from pydantic import BaseModel, ConfigDict
-
 from app.schemas.common import MetricSnapshotOut
+from pydantic import BaseModel, ConfigDict
 
 
 class ProductListItem(BaseModel):

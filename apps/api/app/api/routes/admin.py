@@ -1,15 +1,10 @@
 from datetime import UTC, datetime
 
-from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import func
-from sqlalchemy.orm import Session
-
 from app.core.security import require_admin
 from app.db.session import get_db
 from app.models import (
     AdminAuditLog,
     ItemMatchReview,
-    MetricSnapshot,
     PriceObservation,
     Product,
     ProductAlias,
@@ -20,11 +15,11 @@ from app.models import (
     UserSubmission,
 )
 from app.schemas.admin import (
-    AdminProductSearchResponse,
     AdminAssetPreviewOut,
     AdminObservationDetailOut,
     AdminObservationMatchReviewOut,
     AdminObservationRetailReportOut,
+    AdminProductSearchResponse,
     AdminSubmissionOut,
     DuplicateObservationGroupOut,
     DuplicateObservationOut,
@@ -35,23 +30,36 @@ from app.schemas.admin import (
     MatchRequest,
     ProductAliasCreate,
     ProductAliasOut,
+    RecomputeRequest,
     ScrapeErrorOut,
     ScrapeRunDetailOut,
-    RecomputeRequest,
     ScrapeRunOut,
     SourceRunRequest,
     SourceToggleRequest,
     UnmatchedObservationOut,
 )
 from app.schemas.common import MetricSnapshotOut
+from app.schemas.products import ObservationOut
 from app.schemas.sources import SourceHealthOut, SourceOut
 from app.services.artifacts import build_asset_preview
 from app.services.catalog_search import search_catalog_products
-from app.services.matching.engine import MatchCandidate, build_match_catalog, rank_products, rank_products_against_catalog
+from app.services.matching.engine import (
+    MatchCandidate,
+    build_match_catalog,
+    rank_products,
+    rank_products_against_catalog,
+)
 from app.services.metrics.engine import recompute_product_metrics
-from app.services.operations.duplicates import apply_duplicate_decision, recommend_duplicate_keeper, resolve_duplicate_group
+from app.services.operations.duplicates import (
+    apply_duplicate_decision,
+    recommend_duplicate_keeper,
+    resolve_duplicate_group,
+)
 from app.services.operations.source_runs import execute_source_run, set_source_enabled
 from app.services.submissions.service import review_submission
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import func
+from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/admin", tags=["admin"], dependencies=[Depends(require_admin)])
 
@@ -96,7 +104,9 @@ def serialize_scrape_error(error: ScrapeError, source_name: str | None) -> Scrap
     )
 
 
-def serialize_match_review(review: ItemMatchReview, proposed_product_name: str | None) -> AdminObservationMatchReviewOut:
+def serialize_match_review(
+    review: ItemMatchReview, proposed_product_name: str | None
+) -> AdminObservationMatchReviewOut:
     return AdminObservationMatchReviewOut(
         id=review.id,
         proposed_product_id=review.proposed_product_id,
@@ -151,7 +161,10 @@ def get_unmatched(db: Session = Depends(get_db)) -> list[UnmatchedObservationOut
         UnmatchedObservationOut(
             **observation.__dict__,
             source_name=source_name,
-            top_candidates=[serialize_match_candidate(candidate) for candidate in rank_products_against_catalog(observation.raw_title, catalog)[:5]],
+            top_candidates=[
+                serialize_match_candidate(candidate)
+                for candidate in rank_products_against_catalog(observation.raw_title, catalog)[:5]
+            ],
         )
         for observation, source_name in observations
     ]
@@ -168,31 +181,55 @@ def admin_product_search(
 
 
 @router.get("/observations/{observation_id}", response_model=AdminObservationDetailOut)
-def admin_observation_detail(observation_id: int, db: Session = Depends(get_db)) -> AdminObservationDetailOut:
+def admin_observation_detail(
+    observation_id: int, db: Session = Depends(get_db)
+) -> AdminObservationDetailOut:
     observation = (
-        db.query(PriceObservation)
-        .filter(PriceObservation.id == observation_id)
-        .one_or_none()
+        db.query(PriceObservation).filter(PriceObservation.id == observation_id).one_or_none()
     )
     if observation is None:
         raise HTTPException(status_code=404, detail="Observation not found")
 
-    review_product_ids = [review.proposed_product_id for review in observation.match_reviews if review.proposed_product_id is not None]
-    proposed_products = {
-        product.id: product.canonical_name
-        for product in db.query(Product).filter(Product.id.in_(review_product_ids)).all()
-    } if review_product_ids else {}
+    review_product_ids = [
+        review.proposed_product_id
+        for review in observation.match_reviews
+        if review.proposed_product_id is not None
+    ]
+    proposed_products = (
+        {
+            product.id: product.canonical_name
+            for product in db.query(Product).filter(Product.id.in_(review_product_ids)).all()
+        }
+        if review_product_ids
+        else {}
+    )
+    observation_payload = ObservationOut.model_validate(observation).model_dump()
 
     return AdminObservationDetailOut(
-        **observation.__dict__,
-        source_name=observation.source.name if observation.source else f"source-{observation.source_id}",
+        **observation_payload,
+        first_seen_at=observation.first_seen_at,
+        created_at=observation.created_at,
+        updated_at=observation.updated_at,
+        source_name=observation.source.name
+        if observation.source
+        else f"source-{observation.source_id}",
         product_name=observation.product.canonical_name if observation.product else None,
         variant_key=observation.variant.variant_key if observation.variant else None,
         duplicate_group_key=observation.duplicate_group_key,
-        top_candidates=[serialize_match_candidate(candidate) for candidate in rank_products(db, observation.raw_title)[:5]],
-        retail_report=serialize_retail_report(observation.retail_report) if observation.retail_report else None,
+        top_candidates=[
+            serialize_match_candidate(candidate)
+            for candidate in rank_products(db, observation.raw_title)[:5]
+        ],
+        retail_report=serialize_retail_report(observation.retail_report)
+        if observation.retail_report
+        else None,
         match_reviews=[
-            serialize_match_review(review, proposed_products.get(review.proposed_product_id))
+            serialize_match_review(
+                review,
+                proposed_products.get(review.proposed_product_id)
+                if review.proposed_product_id is not None
+                else None,
+            )
             for review in sorted(
                 observation.match_reviews,
                 key=lambda item: item.reviewed_at or datetime.min.replace(tzinfo=UTC),
@@ -204,7 +241,11 @@ def admin_observation_detail(observation_id: int, db: Session = Depends(get_db))
 
 @router.post("/match")
 def post_match(payload: MatchRequest, db: Session = Depends(get_db)) -> dict:
-    observation = db.query(PriceObservation).filter(PriceObservation.id == payload.observation_id).one_or_none()
+    observation = (
+        db.query(PriceObservation)
+        .filter(PriceObservation.id == payload.observation_id)
+        .one_or_none()
+    )
     if observation is None:
         raise HTTPException(status_code=404, detail="Observation not found")
     if payload.product_id is None and payload.decision == "matched":
@@ -237,8 +278,12 @@ def post_match(payload: MatchRequest, db: Session = Depends(get_db)) -> dict:
 
 
 @router.get("/observations/{observation_id}/candidates", response_model=list[MatchCandidateOut])
-def get_observation_candidates(observation_id: int, db: Session = Depends(get_db)) -> list[MatchCandidateOut]:
-    observation = db.query(PriceObservation).filter(PriceObservation.id == observation_id).one_or_none()
+def get_observation_candidates(
+    observation_id: int, db: Session = Depends(get_db)
+) -> list[MatchCandidateOut]:
+    observation = (
+        db.query(PriceObservation).filter(PriceObservation.id == observation_id).one_or_none()
+    )
     if observation is None:
         raise HTTPException(status_code=404, detail="Observation not found")
     return [
@@ -249,8 +294,16 @@ def get_observation_candidates(observation_id: int, db: Session = Depends(get_db
 
 @router.post("/recompute", response_model=list[MetricSnapshotOut])
 def recompute(payload: RecomputeRequest, db: Session = Depends(get_db)) -> list[MetricSnapshotOut]:
-    product_ids = [payload.product_id] if payload.product_id else [product.id for product in db.query(Product.id).all()]
-    snapshots = [recompute_product_metrics(db, product_id) for product_id in product_ids if product_id is not None]
+    product_ids = (
+        [payload.product_id]
+        if payload.product_id
+        else [product.id for product in db.query(Product.id).all()]
+    )
+    snapshots = [
+        recompute_product_metrics(db, product_id)
+        for product_id in product_ids
+        if product_id is not None
+    ]
     db.add(
         AdminAuditLog(
             admin_identifier="token-admin",
@@ -265,7 +318,9 @@ def recompute(payload: RecomputeRequest, db: Session = Depends(get_db)) -> list[
 
 
 @router.get("/scrape-runs", response_model=list[ScrapeRunOut])
-def admin_scrape_runs(limit: int = Query(default=50, le=200), db: Session = Depends(get_db)) -> list[ScrapeRunOut]:
+def admin_scrape_runs(
+    limit: int = Query(default=50, le=200), db: Session = Depends(get_db)
+) -> list[ScrapeRunOut]:
     runs = (
         db.query(ScrapeRun, Source.name.label("source_name"))
         .join(Source, Source.id == ScrapeRun.source_id)
@@ -314,13 +369,17 @@ def admin_duplicate_groups(
             .order_by(PriceObservation.observed_at.desc(), PriceObservation.id.desc())
             .all()
         )
-        recommendation = recommend_duplicate_keeper([observation for observation, _, _ in group_rows])
+        recommendation = recommend_duplicate_keeper(
+            [observation for observation, _, _ in group_rows]
+        )
         payload.append(
             DuplicateObservationGroupOut(
                 duplicate_group_key=group.duplicate_group_key,
                 duplicate_count=int(group.duplicate_count),
                 latest_observed_at=group.latest_observed_at,
-                suggested_keep_observation_id=recommendation.observation_id if recommendation else None,
+                suggested_keep_observation_id=recommendation.observation_id
+                if recommendation
+                else None,
                 suggested_keep_reason=recommendation.reason if recommendation else None,
                 observations=[
                     serialize_duplicate_observation(observation, source_name, product_name)
@@ -351,12 +410,16 @@ def admin_scrape_run_detail(run_id: int, db: Session = Depends(get_db)) -> Scrap
     )
     return ScrapeRunDetailOut(
         **serialize_scrape_run(run, source_name).model_dump(),
-        errors=[serialize_scrape_error(error, error_source_name) for error, error_source_name in errors],
+        errors=[
+            serialize_scrape_error(error, error_source_name) for error, error_source_name in errors
+        ],
     )
 
 
 @router.get("/assets/preview", response_model=AdminAssetPreviewOut)
-def admin_asset_preview(path: str = Query(min_length=1), db: Session = Depends(get_db)) -> AdminAssetPreviewOut:
+def admin_asset_preview(
+    path: str = Query(min_length=1), db: Session = Depends(get_db)
+) -> AdminAssetPreviewOut:
     del db
     try:
         preview = build_asset_preview(path)
@@ -369,7 +432,11 @@ def admin_asset_preview(path: str = Query(min_length=1), db: Session = Depends(g
 
 @router.post("/duplicates/review")
 def review_duplicate(payload: DuplicateReviewRequest, db: Session = Depends(get_db)) -> dict:
-    observation = db.query(PriceObservation).filter(PriceObservation.id == payload.observation_id).one_or_none()
+    observation = (
+        db.query(PriceObservation)
+        .filter(PriceObservation.id == payload.observation_id)
+        .one_or_none()
+    )
     if observation is None:
         raise HTTPException(status_code=404, detail="Observation not found")
     if observation.duplicate_group_key is None:
@@ -391,7 +458,9 @@ def review_duplicate(payload: DuplicateReviewRequest, db: Session = Depends(get_
 
 
 @router.post("/duplicates/resolve", response_model=DuplicateResolveOut)
-def resolve_duplicates(payload: DuplicateResolveRequest, db: Session = Depends(get_db)) -> DuplicateResolveOut:
+def resolve_duplicates(
+    payload: DuplicateResolveRequest, db: Session = Depends(get_db)
+) -> DuplicateResolveOut:
     try:
         result = resolve_duplicate_group(
             db,
@@ -445,7 +514,9 @@ def admin_source_health(db: Session = Depends(get_db)) -> list[SourceHealthOut]:
         )
         success_rate = None
         if recent_runs:
-            success_rate = round(sum(1 for run in recent_runs if run.status == "success") / len(recent_runs), 3)
+            success_rate = round(
+                sum(1 for run in recent_runs if run.status == "success") / len(recent_runs), 3
+            )
         recent_error_count = sum(run.error_count for run in recent_runs)
         last_status = recent_runs[0].status if recent_runs else None
         results.append(
@@ -466,11 +537,15 @@ def admin_source_health(db: Session = Depends(get_db)) -> list[SourceHealthOut]:
 
 
 @router.post("/sources/{source_id}/run", response_model=ScrapeRunOut)
-def run_source(source_id: int, payload: SourceRunRequest, db: Session = Depends(get_db)) -> ScrapeRunOut:
+def run_source(
+    source_id: int, payload: SourceRunRequest, db: Session = Depends(get_db)
+) -> ScrapeRunOut:
     source = db.query(Source).filter(Source.id == source_id).one_or_none()
     if source is None:
         raise HTTPException(status_code=404, detail="Source not found")
-    result = execute_source_run(db, source.name, query=payload.query, html_override=payload.html_override)
+    result = execute_source_run(
+        db, source.name, query=payload.query, html_override=payload.html_override
+    )
     db.add(
         AdminAuditLog(
             admin_identifier="token-admin",
@@ -486,7 +561,9 @@ def run_source(source_id: int, payload: SourceRunRequest, db: Session = Depends(
 
 
 @router.post("/sources/{source_id}/toggle", response_model=SourceOut)
-def toggle_source(source_id: int, payload: SourceToggleRequest, db: Session = Depends(get_db)) -> SourceOut:
+def toggle_source(
+    source_id: int, payload: SourceToggleRequest, db: Session = Depends(get_db)
+) -> SourceOut:
     try:
         source = set_source_enabled(db, source_id, payload.enabled)
     except ValueError as exc:
@@ -506,15 +583,20 @@ def toggle_source(source_id: int, payload: SourceToggleRequest, db: Session = De
 
 
 @router.get("/submissions", response_model=list[AdminSubmissionOut])
-def admin_submissions(status: str | None = Query(default=None), db: Session = Depends(get_db)) -> list[AdminSubmissionOut]:
+def admin_submissions(
+    status: str | None = Query(default=None), db: Session = Depends(get_db)
+) -> list[AdminSubmissionOut]:
     query = db.query(UserSubmission)
     if status:
         query = query.filter(UserSubmission.status == status)
     submissions = query.order_by(UserSubmission.created_at.desc()).limit(200).all()
     return [
         AdminSubmissionOut(
-            **AdminSubmissionOut.model_validate(submission).model_dump(),
-            top_candidates=[serialize_match_candidate(candidate) for candidate in rank_products(db, submission.item_name)[:5]],
+            **AdminSubmissionOut.model_validate(submission).model_dump(exclude={"top_candidates"}),
+            top_candidates=[
+                serialize_match_candidate(candidate)
+                for candidate in rank_products(db, submission.item_name)[:5]
+            ],
         )
         for submission in submissions
     ]
@@ -548,7 +630,9 @@ def get_product_aliases(product_id: int, db: Session = Depends(get_db)) -> list[
 
 
 @router.post("/products/{product_id}/aliases", response_model=ProductAliasOut)
-def create_product_alias(product_id: int, payload: ProductAliasCreate, db: Session = Depends(get_db)) -> ProductAliasOut:
+def create_product_alias(
+    product_id: int, payload: ProductAliasCreate, db: Session = Depends(get_db)
+) -> ProductAliasOut:
     product = db.query(Product).filter(Product.id == product_id).one_or_none()
     if product is None:
         raise HTTPException(status_code=404, detail="Product not found")

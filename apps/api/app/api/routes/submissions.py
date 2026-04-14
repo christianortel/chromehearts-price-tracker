@@ -1,17 +1,20 @@
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
-from sqlalchemy.orm import Session
-
 from app.core.config import get_settings
 from app.core.rate_limit import limit_submissions
 from app.db.session import get_db
 from app.schemas.submissions import SubmissionAssetUploadOut, SubmissionCreate, SubmissionOut
 from app.services.artifacts import write_submission_upload
 from app.services.submissions.service import create_submission
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from sqlalchemy.orm import Session
 
 router = APIRouter(tags=["submissions"])
 
 
-@router.post("/submission-assets/upload", response_model=SubmissionAssetUploadOut, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/submission-assets/upload",
+    response_model=SubmissionAssetUploadOut,
+    status_code=status.HTTP_201_CREATED,
+)
 async def upload_submission_asset(
     file: UploadFile = File(...),
     _: None = Depends(limit_submissions),
@@ -23,7 +26,9 @@ async def upload_submission_asset(
 
     max_bytes = settings.upload_max_mb * 1024 * 1024
     if len(content) > max_bytes:
-        raise HTTPException(status_code=413, detail=f"Uploaded file exceeds {settings.upload_max_mb} MB limit")
+        raise HTTPException(
+            status_code=413, detail=f"Uploaded file exceeds {settings.upload_max_mb} MB limit"
+        )
 
     try:
         stored = write_submission_upload(

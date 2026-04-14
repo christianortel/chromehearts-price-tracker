@@ -1,13 +1,22 @@
 from decimal import Decimal
 
-from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.orm import Session
-
 from app.db.session import get_db
 from app.models import MetricSnapshot, PriceObservation, Product
 from app.schemas.common import MetricSnapshotOut
-from app.schemas.products import ObservationOut, ProductBrowseResponse, ProductDetail, ProductListItem
-from app.services.catalog_search import ProductBrowseSort, browse_catalog_products, latest_metric_for_product, query_catalog_products
+from app.schemas.products import (
+    ObservationOut,
+    ProductBrowseResponse,
+    ProductDetail,
+    ProductListItem,
+)
+from app.services.catalog_search import (
+    ProductBrowseSort,
+    browse_catalog_products,
+    latest_metric_for_product,
+    query_catalog_products,
+)
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/products", tags=["products"])
 
@@ -25,7 +34,7 @@ def list_products(
     market_sides: list[str] = Query(default=[]),
     min_confidence: Decimal | None = Query(default=None, ge=0, le=1),
     sort: ProductBrowseSort = Query(default="updated_desc"),
-    limit: int = Query(default=50, le=200),
+    limit: int = Query(default=200, le=200),
     offset: int = Query(default=0, ge=0),
     db: Session = Depends(get_db),
 ) -> list[ProductListItem]:
@@ -88,14 +97,18 @@ def get_product(product_id: int, db: Session = Depends(get_db)) -> ProductDetail
     )
     return ProductDetail(
         **product.__dict__,
-        latest_metric=MetricSnapshotOut.model_validate(_latest_metric(product)) if _latest_metric(product) else None,
+        latest_metric=MetricSnapshotOut.model_validate(_latest_metric(product))
+        if _latest_metric(product)
+        else None,
         observations=[ObservationOut.model_validate(observation) for observation in observations],
         aliases=[alias.alias_text for alias in product.aliases],
     )
 
 
 @router.get("/{product_id}/observations", response_model=list[ObservationOut])
-def get_product_observations(product_id: int, db: Session = Depends(get_db)) -> list[ObservationOut]:
+def get_product_observations(
+    product_id: int, db: Session = Depends(get_db)
+) -> list[ObservationOut]:
     observations = (
         db.query(PriceObservation)
         .filter(PriceObservation.product_id == product_id)

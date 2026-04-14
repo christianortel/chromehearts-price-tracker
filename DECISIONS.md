@@ -93,3 +93,7 @@ Rationale: The MVP needs obvious, reusable collector workflows now, and curated 
 ### Web runtime validation workflow
 Decision: Keep the React Compiler enabled in the Next.js app, but make runtime validation honest by installing the required `babel-plugin-react-compiler` dependency instead of silently disabling the compiler when the first production build fails.
 Rationale: The repo is already opting into the compiler, so the production-minded fix is to satisfy that contract and verify the build path rather than masking the missing dependency.
+
+### API freshness and seed validation workflow
+Decision: Normalize naive datetimes to UTC inside the metrics freshness path and seed cross-category retail/ask coverage plus at least one unmatched moderation example for local/admin verification.
+Rationale: SQLite-backed tests drop timezone information, and the MVP needs representative seeded evidence across categories plus a real unmatched queue item to keep API and admin workflows honestly testable.

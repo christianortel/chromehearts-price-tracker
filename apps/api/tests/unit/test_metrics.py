@@ -1,9 +1,8 @@
 from decimal import Decimal
 
-from sqlalchemy.orm import Session
-
 from app.models import MetricSnapshot, Product
 from app.services.metrics.engine import recompute_product_metrics
+from sqlalchemy.orm import Session
 
 
 def test_metrics_recompute_keeps_retail_and_ask_separate(db_session: Session) -> None:

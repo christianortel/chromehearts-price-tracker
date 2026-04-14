@@ -1,8 +1,7 @@
-from sqlalchemy.orm import Session
-
 from app.models import PriceObservation, Product
 from app.services.adapters.ebay import EbayAdapter
 from app.services.etl.pipeline import persist_observations
+from sqlalchemy.orm import Session
 
 
 def test_persist_observations_uses_matcher_for_auto_match(db_session: Session) -> None:
@@ -24,7 +23,8 @@ def test_persist_observations_uses_matcher_for_auto_match(db_session: Session) -
     persisted = persist_observations(db_session, observations)
     db_session.commit()
 
-    created = db_session.query(PriceObservation).filter(PriceObservation.id == persisted[0].id).one()
+    created = (
+        db_session.query(PriceObservation).filter(PriceObservation.id == persisted[0].id).one()
+    )
     assert created.product_id == product.id
     assert created.market_side == "ask"
-

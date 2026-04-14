@@ -1,7 +1,6 @@
 import re
 import unicodedata
-from hashlib import sha1
-
+from hashlib import sha256
 
 ABBREVIATIONS = {
     "ls": "long sleeve",
@@ -15,8 +14,8 @@ ABBREVIATIONS = {
 
 CATEGORY_KEYWORDS = {
     "trucker_hat": ["trucker", "hat", "cap"],
-    "hoodie": ["hoodie", "pullover"],
     "zip_up": ["zip up", "zip", "zip hoodie"],
+    "hoodie": ["hoodie", "pullover"],
     "long_sleeve": ["long sleeve", "ls"],
     "ring": ["ring"],
     "bracelet": ["bracelet", "paper chain", "fancy"],
@@ -47,7 +46,8 @@ def extract_size_token(value: str) -> str | None:
     return match.group(1).lower() if match else None
 
 
-def build_duplicate_group_key(source_name: str, normalized_title: str, price_amount: str, date_hint: str) -> str:
+def build_duplicate_group_key(
+    source_name: str, normalized_title: str, price_amount: str, date_hint: str
+) -> str:
     payload = f"{source_name}|{normalized_title}|{price_amount}|{date_hint}"
-    return sha1(payload.encode("utf-8")).hexdigest()
-
+    return sha256(payload.encode("utf-8")).hexdigest()

@@ -58,7 +58,9 @@ def stage_csv(path: Path, db: Session, source_name: str = "legacy_csv") -> int:
     return count
 
 
-def publish_staged_row(db: Session, row: LegacyImportRow, product_id: int | None) -> PriceObservation:
+def publish_staged_row(
+    db: Session, row: LegacyImportRow, product_id: int | None
+) -> PriceObservation:
     source = db.query(Source).filter(Source.name == row.source_name).one()
     observation = PriceObservation(
         product_id=product_id,
@@ -97,5 +99,5 @@ def publish_staged_row(db: Session, row: LegacyImportRow, product_id: int | None
         )
     )
     row.publish_status = "published"
+    db.flush()
     return observation
-

@@ -1,6 +1,5 @@
-from fastapi import Depends, Header, HTTPException, status
-
 from app.core.config import Settings, get_settings
+from fastapi import Depends, Header, HTTPException, status
 
 
 def require_admin(
@@ -17,4 +16,3 @@ def require_admin(
             detail="Admin authentication required.",
         )
     return True
-

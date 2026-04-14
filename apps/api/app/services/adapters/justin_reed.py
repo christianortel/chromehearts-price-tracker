@@ -16,4 +16,3 @@ class JustinReedAdapter(BaseSourceAdapter):
 
     def normalize_item(self, item: DiscoveredItem) -> NormalizedObservation:
         raise NotImplementedError("Justin Reed adapter is stubbed until selectors are validated.")
-

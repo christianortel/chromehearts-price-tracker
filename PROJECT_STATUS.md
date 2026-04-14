@@ -10,15 +10,16 @@ Last updated: 2026-04-13
 - Duplicate review now supports conservative keeper recommendation and explicit single-keeper resolution; deeper merge semantics remain deferred.
 - The user submission flow now supports local proof uploads, but object-storage-backed delivery and broader runtime verification are still outstanding.
 - Admin moderation now supports free-text product lookup inside unmatched-observation and submission review, layered on top of conservative ranked candidates, and observation detail inspection exposes raw payload and review context directly in the web admin.
-- The public browse/search surface now supports real query, category, source-class, market-side, confidence-threshold, sorting, facet counts, page metadata, shareable URL-backed filter state, explicit share controls, and curated quick views backed by the shared catalog query layer; deeper runtime validation remains future work.
-- The web workspace has now been partially runtime-validated locally through root `npm` scripts: dependency install, lint, and production build succeed, while the Python/API stack remains blocked in this shell.
-- Current known risk: full-stack runtime validation is still incomplete because Python and Docker are unavailable locally.
+- The public browse/search surface now supports real query, category, source-class, market-side, confidence-threshold, sorting, facet counts, page metadata, shareable URL-backed filter state, explicit share controls, and curated quick views backed by the shared catalog query layer.
+- The web workspace passes local validation through the root npm scripts for lint, compile-mode typecheck, and production build.
+- The API workspace now passes the same core quality gates as GitHub Actions locally: `ruff check .`, `mypy app`, and `pytest`.
+- Current known risk: Docker-based full-stack validation and live-source selector verification are still incomplete.
 
 ## Active Focus For This Run
 
-- validating the runtime path wherever local tooling actually exists
-- fixing concrete web build issues surfaced by real local execution
-- leaving the next handoff focused on remaining runtime blockers and follow-up hardening
+- reproducing and fixing the failing GitHub Actions `CI / api` job locally
+- tightening API lint, typing, seed, and metrics behavior until the local API quality gate is green
+- leaving the next handoff focused on post-CI hardening instead of basic toolchain availability
 
 ## Milestone 1: Foundation
 
@@ -36,7 +37,7 @@ Completed:
 - protected Next.js app shell added with home, browse, product, submission, and admin pages
 
 Partially complete:
-- local runtime verification
+- Docker-based full-stack runtime verification
 - admin UX breadth
 - adapter live-source validation
 
@@ -47,10 +48,10 @@ Stubbed:
 - sold-comp source integrations pending compliant reliable access
 
 Blocked:
-- local execution and test runs are blocked in the current shell because Python 3.12 is not installed or not available on PATH
+- Docker is still unavailable in this shell, so containerized end-to-end validation cannot be completed in-session
 
 Remaining:
-- run the full backend and web stacks in a Python-enabled environment
+- run the full backend and web stacks in Docker
 - validate migrations, seeds, and tests end to end
 - deepen admin operations with object-storage-backed artifact delivery and duplicate merge tooling
 - add more source coverage and hardening
@@ -138,24 +139,25 @@ Partially complete:
 
 Completed this run:
 - reviewed the existing repo and status/docs before making changes
-- installed the missing React Compiler Babel plugin so the Next.js workspace satisfies its configured compiler contract during real builds
-- used the root workspace scripts to validate the web toolchain locally, then fixed the lint/build issues surfaced in admin asset preview and admin dashboard copy
-- changed the web `typecheck` script to use Next compile mode so clean-checkout validation generates required route types instead of depending on stale `.next` artifacts
+- reproduced the failing GitHub Actions `CI / api` job locally with a Python 3.12 virtual environment
+- fixed the API runtime import break in rate limiting, tightened Ruff configuration for tests and Alembic, and cleaned up the API lint surface until `ruff check .` passed
+- resolved the remaining mypy failures in catalog search, matching, seed typing, and admin serialization until `mypy app` passed
+- fixed real API/runtime defects exposed by pytest, including timezone-safe freshness scoring, zip-up category precedence, fuller cross-category seed coverage, a seeded unmatched moderation example, flush-safe retail-report creation, and admin observation-detail payload construction
+- ran the full API pytest suite successfully and verified that all 33 API tests pass locally
 
 What remains:
-- execute the stack and test suite in an environment with Python available
+- execute the stack end to end in Docker
 - add object-storage-backed delivery for submission proofs and scrape artifacts, plus richer screenshot browsing
 - validate live source execution against real pages and tune selector resilience
 - refine duplicate tooling with deeper merge semantics and reviewer notes where appropriate
 - add user-defined saved browse views beyond the current curated quick views, then finish remaining docs and hardening work
 
 Recommended next step:
-- run `docker compose up --build`, `make migrate`, `make seed`, and the API/web test suites in a Python-capable environment, then fix any runtime issues before expanding source breadth or deepening object-storage delivery
+- rerun GitHub Actions on the pushed CI fix, then run `docker compose up --build`, `make migrate`, `make seed`, and the full stack smoke path to validate containerized execution before expanding source breadth or deepening object-storage delivery
 
 Blockers or risks:
-- this shell still lacks Python, so runtime verification remains outstanding
-- Docker is also unavailable in this shell, so container-based validation cannot currently replace the missing Python toolchain
+- Docker is still unavailable in this shell, so container-based validation remains outstanding even though the local Python/API quality gate now passes
 - parser implementations are fixture-validated and admin-inspectable, but still need live selector validation before claiming operational reliability
 - duplicate grouping and keeper recommendation are heuristic and intentionally conservative; they still need runtime validation before being treated as operationally complete
 - proof uploads and artifact preview currently support local stored files with safe validation and admin-only preview; object storage delivery and larger binary handling remain future work
-- the public web workspace now passes local lint and production build via the root npm scripts, but the API-backed and seeded-data flows still need runtime validation before being treated as production-ready
+- the public web workspace passes local lint and production build, and the API workspace passes local lint, typing, and tests, but Dockerized stack validation and live-source execution still need to be completed before treating the system as production-ready

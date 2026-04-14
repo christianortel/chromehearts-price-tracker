@@ -16,4 +16,3 @@ class StockxAdapter(BaseSourceAdapter):
 
     def normalize_item(self, item: DiscoveredItem) -> NormalizedObservation:
         raise NotImplementedError("StockX adapter remains disabled pending coverage feasibility.")
-

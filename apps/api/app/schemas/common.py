@@ -27,4 +27,3 @@ class MetricSnapshotOut(ApiModel):
     freshness_score: Decimal | None
     confidence_score: Decimal | None
     generated_at: datetime
-

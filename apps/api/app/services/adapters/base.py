@@ -49,7 +49,9 @@ class BaseSourceAdapter(ABC):
     def to_observations(self, items: list[DiscoveredItem]) -> list[NormalizedObservation]:
         return [self.normalize_item(item) for item in items]
 
-    def _build_duplicate_key(self, normalized_title: str, price_amount: Decimal, observed_at: str) -> str:
+    def _build_duplicate_key(
+        self, normalized_title: str, price_amount: Decimal, observed_at: str
+    ) -> str:
         return build_duplicate_group_key(
             self.source_name,
             normalized_title,
@@ -59,4 +61,3 @@ class BaseSourceAdapter(ABC):
 
     def _normalize_title(self, title: str) -> str:
         return normalize_text(title)
-

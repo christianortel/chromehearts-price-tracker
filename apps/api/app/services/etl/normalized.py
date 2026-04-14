@@ -31,4 +31,3 @@ class NormalizedObservation(BaseModel):
     match_confidence: Decimal = Decimal("0.000")
     price_confidence: Decimal = Decimal("0.500")
     duplicate_group_key: str | None = None
-

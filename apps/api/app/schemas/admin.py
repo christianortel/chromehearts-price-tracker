@@ -1,9 +1,8 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, Field
-
 from app.schemas.products import ObservationOut, ProductListItem
 from app.schemas.submissions import SubmissionOut
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class MatchCandidateOut(BaseModel):

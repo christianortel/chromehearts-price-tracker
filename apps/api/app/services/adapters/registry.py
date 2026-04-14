@@ -14,4 +14,3 @@ def build_adapter_registry() -> dict[str, BaseSourceAdapter]:
         "justin_reed": JustinReedAdapter(),
         "stockx": StockxAdapter(),
     }
-

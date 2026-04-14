@@ -1,13 +1,12 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 from decimal import Decimal
-from typing import Sequence
 
 from sqlalchemy.orm import Session
 
 from app.models import AdminAuditLog, PriceObservation
-
 
 SOURCE_TYPE_WEIGHTS = {
     "community_retail": Decimal("1.50"),
@@ -41,7 +40,9 @@ def _restore_status(observation: PriceObservation) -> str:
     return "active" if observation.product_id else "pending_review"
 
 
-def _sync_retail_report(observation: PriceObservation, moderator_status: str, reviewer_notes: str | None) -> None:
+def _sync_retail_report(
+    observation: PriceObservation, moderator_status: str, reviewer_notes: str | None
+) -> None:
     if observation.retail_report is None:
         return
     observation.retail_report.moderator_status = moderator_status
@@ -118,7 +119,11 @@ def _build_recommendation_reason(observation: PriceObservation) -> str:
     elif observation.match_confidence >= Decimal("0.850"):
         reasons.append("strong match confidence")
 
-    return ", ".join(reasons[:3]) if reasons else "best overall evidence quality in this duplicate group"
+    return (
+        ", ".join(reasons[:3])
+        if reasons
+        else "best overall evidence quality in this duplicate group"
+    )
 
 
 def recommend_duplicate_keeper(
@@ -157,7 +162,9 @@ def resolve_duplicate_group(
     if not observations:
         raise ValueError("Duplicate group not found")
 
-    keep_observation = next((observation for observation in observations if observation.id == keep_observation_id), None)
+    keep_observation = next(
+        (observation for observation in observations if observation.id == keep_observation_id), None
+    )
     if keep_observation is None:
         raise ValueError("Keep observation does not belong to this duplicate group")
 
@@ -167,14 +174,16 @@ def resolve_duplicate_group(
             apply_duplicate_decision(
                 observation,
                 decision="restore",
-                reviewer_notes=reviewer_notes or "Kept as the chosen observation for this duplicate group.",
+                reviewer_notes=reviewer_notes
+                or "Kept as the chosen observation for this duplicate group.",
             )
             continue
 
         apply_duplicate_decision(
             observation,
             decision="reject",
-            reviewer_notes=reviewer_notes or f"Rejected because observation {keep_observation_id} was chosen as keeper.",
+            reviewer_notes=reviewer_notes
+            or f"Rejected because observation {keep_observation_id} was chosen as keeper.",
         )
         rejected_ids.append(observation.id)
 

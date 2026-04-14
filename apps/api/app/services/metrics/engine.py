@@ -15,10 +15,19 @@ def _decimal_median(values: list[Decimal]) -> Decimal | None:
     return Decimal(str(median([float(value) for value in values]))).quantize(Decimal("0.01"))
 
 
-def _freshness_score(latest_seen_at: datetime | None) -> Decimal | None:
-    if latest_seen_at is None:
+def _coerce_utc(value: datetime | None) -> datetime | None:
+    if value is None:
         return None
-    days_old = max((datetime.now(UTC) - latest_seen_at).days, 0)
+    if value.tzinfo is None:
+        return value.replace(tzinfo=UTC)
+    return value.astimezone(UTC)
+
+
+def _freshness_score(latest_seen_at: datetime | None) -> Decimal | None:
+    latest_seen = _coerce_utc(latest_seen_at)
+    if latest_seen is None:
+        return None
+    days_old = max((datetime.now(UTC) - latest_seen).days, 0)
     score = max(0.05, 1 - (days_old / 180))
     return Decimal(str(round(score, 3)))
 
@@ -54,30 +63,47 @@ def recompute_product_metrics(db: Session, product_id: int) -> MetricSnapshot:
     sold_30d = [
         observation.price_amount
         for observation in solds
-        if observation.observed_at >= datetime.now(UTC) - timedelta(days=30)
+        if (_coerce_utc(observation.observed_at) or datetime.min.replace(tzinfo=UTC))
+        >= datetime.now(UTC) - timedelta(days=30)
     ]
     sold_90d = [
         observation.price_amount
         for observation in solds
-        if observation.observed_at >= datetime.now(UTC) - timedelta(days=90)
+        if (_coerce_utc(observation.observed_at) or datetime.min.replace(tzinfo=UTC))
+        >= datetime.now(UTC) - timedelta(days=90)
     ]
 
     best_known_retail = min(retail_prices) if retail_prices else None
     ask_median = _decimal_median(ask_prices)
-    latest_seen = max((observation.last_seen_at for observation in observations), default=None)
+    latest_seen_candidates = [
+        normalized_seen_at
+        for observation in observations
+        if (normalized_seen_at := _coerce_utc(observation.last_seen_at)) is not None
+    ]
+    latest_seen = max(latest_seen_candidates) if latest_seen_candidates else None
     freshness = _freshness_score(latest_seen)
-    confidence_components = [float(observation.price_confidence) for observation in observations[:25]]
-    confidence = Decimal(str(round(sum(confidence_components) / len(confidence_components), 3))) if confidence_components else None
+    confidence_components = [
+        float(observation.price_confidence) for observation in observations[:25]
+    ]
+    confidence = (
+        Decimal(str(round(sum(confidence_components) / len(confidence_components), 3)))
+        if confidence_components
+        else None
+    )
 
     premium_abs = None
     premium_pct = None
     if best_known_retail and ask_median and best_known_retail > 0:
         premium_abs = (ask_median - best_known_retail).quantize(Decimal("0.01"))
-        premium_pct = ((premium_abs / best_known_retail) * Decimal("100")).quantize(Decimal("0.0001"))
+        premium_pct = ((premium_abs / best_known_retail) * Decimal("100")).quantize(
+            Decimal("0.0001")
+        )
 
     snapshot = (
         db.query(MetricSnapshot)
-        .filter(MetricSnapshot.product_id == product_id, MetricSnapshot.snapshot_date == date.today())
+        .filter(
+            MetricSnapshot.product_id == product_id, MetricSnapshot.snapshot_date == date.today()
+        )
         .one_or_none()
     )
     if snapshot is None:
@@ -101,4 +127,3 @@ def recompute_product_metrics(db: Session, product_id: int) -> MetricSnapshot:
     snapshot.generated_at = datetime.now(UTC)
     db.flush()
     return snapshot
-
