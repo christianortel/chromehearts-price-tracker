@@ -1,0 +1,33 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  @apply bg-ink text-parchment antialiased;
+  background-image:
+    radial-gradient(circle at top, rgba(185, 137, 88, 0.15), transparent 24%),
+    radial-gradient(circle at 80% 10%, rgba(101, 116, 95, 0.14), transparent 18%),
+    linear-gradient(180deg, #181313 0%, #090808 100%);
+  min-height: 100vh;
+}
+
+a {
+  @apply transition-colors;
+}
+
+* {
+  scrollbar-color: #6d5a46 #171212;
+}
+
+.panel {
+  @apply rounded-3xl border border-white/10 bg-white/5 shadow-panel backdrop-blur;
+}
+
+.hairline {
+  @apply border-white/10;
+}
+

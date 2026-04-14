@@ -1,0 +1,4 @@
+id,item_name,price,currency,store,city,country,date_seen,proof_type,proof_asset_url,source_url
+1,Chrome Hearts Forever Ring,495,USD,Chrome Hearts NYC,New York,US,2026-03-01T00:00:00+00:00,receipt,https://example.com/receipt.jpg,https://example.com/source
+2,Chrome Hearts Cross Patch Trucker Hat Black,425,USD,Chrome Hearts Miami,Miami,US,2026-03-02T00:00:00+00:00,claim,,https://example.com/source2
+

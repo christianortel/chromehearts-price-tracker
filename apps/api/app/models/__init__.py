@@ -1,0 +1,36 @@
+from app.models.entities import (
+    AdminAuditLog,
+    Alert,
+    ItemMatchReview,
+    LegacyImportRow,
+    MetricSnapshot,
+    PriceObservation,
+    Product,
+    ProductAlias,
+    ProductVariant,
+    RetailReport,
+    ScrapeError,
+    ScrapeRun,
+    Source,
+    UserSubmission,
+    Watchlist,
+)
+
+__all__ = [
+    "AdminAuditLog",
+    "Alert",
+    "ItemMatchReview",
+    "LegacyImportRow",
+    "MetricSnapshot",
+    "PriceObservation",
+    "Product",
+    "ProductAlias",
+    "ProductVariant",
+    "RetailReport",
+    "ScrapeError",
+    "ScrapeRun",
+    "Source",
+    "UserSubmission",
+    "Watchlist",
+]
+
